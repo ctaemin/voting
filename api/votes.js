@@ -103,7 +103,7 @@ export default async function handler(req, res) {
             args: [
               { type: "text",    value: userId },
               { type: "text",    value: JSON.stringify(selectedIdeas) },
-              { type: "integer", value: Date.now() },
+             { type: "text", value: String(Date.now()) },
             ],
           },
         },
