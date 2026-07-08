@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>투표하기</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#006e2e',
+        'primary-container': '#03c75a',
+        'background-alt': '#F4F6F8',
+        'border-light': '#EAEBEE',
+        'text-primary': '#000000',
+        'text-secondary': '#666666',
+        'text-tertiary': '#999999',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        headline: ['"Plus Jakarta Sans"', 'sans-serif'],
+      },
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .material-symbols-outlined { font-size: 22px; vertical-align: middle; }
+  .idea-card { transition: border-color .15s, background .15s; }
+  .idea-card.selected { border-color: #03c75a; background: #f0fdf4; }
+  .idea-card.selected .check-circle { background: #03c75a; border-color: #03c75a; }
+  .check-circle { transition: all .15s; }
+</style>
+</head>
+<body class="bg-background-alt min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-white border-b border-border-light px-4 py-3 flex items-center gap-2">
+    <span class="material-symbols-outlined" style="color:#03c75a">how_to_vote</span>
+    <span class="headline font-bold text-lg text-text-primary">아이디어 투표</span>
+  </header>
+
+  <div class="max-w-xl mx-auto px-4 py-5">
+    <div id="app"></div>
+  </div>
+
+<script>
+const STORAGE_FLAG = "voted_flag";
+const STORAGE_UID  = "vote_user_id";
+
+function getUserId() {
+  let id = localStorage.getItem(STORAGE_UID);
+  if (!id) {
+    id = "user_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+    localStorage.setItem(STORAGE_UID, id);
+  }
+  return id;
+}
+
+let maxVotes = 2;
+let selected = [];
+let ideas = [];
+
+async function init() {
+  const app = document.getElementById("app");
+
+  if (localStorage.getItem(STORAGE_FLAG) === "true") {
+    showAlreadyVoted();
+    return;
+  }
+
+  let data;
+  try {
+    const res = await fetch("/api/config");
+    data = await res.json();
+  } catch(e) {
+    app.innerHTML = infoBox("⚠️", "서버 연결에 실패했습니다.", "잠시 후 다시 시도해주세요.");
+    return;
+  }
+
+  if (!data.isOpen) {
+    app.innerHTML = infoBox("⏳", "투표가 아직 시작되지 않았습니다.", "잠시 후 다시 확인해주세요.");
+    return;
+  }
+
+  ideas = data.ideas;
+  maxVotes = data.maxVotes;
+  renderVote();
+}
+
+function infoBox(icon, title, sub, link) {
+  return `
+    <div class="bg-white rounded-xl border border-border-light p-10 text-center">
+      <div class="text-5xl mb-4">${icon}</div>
+      <p class="headline font-bold text-text-primary text-lg mb-1">${title}</p>
+      <p class="text-text-secondary text-sm">${sub}</p>
+      ${link || ""}
+    </div>`;
+}
+
+function renderVote() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="mb-4 bg-white rounded-xl border border-border-light px-5 py-4">
+      <p class="text-text-secondary text-sm">마음에 드는 아이디어를 <strong class="text-text-primary">${maxVotes}개</strong> 선택해주세요</p>
+      <div class="flex items-center gap-2 mt-2">
+        <div class="flex-1 h-1.5 bg-background-alt rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full rounded-full transition-all duration-300" style="width:0%;background:#03c75a"></div>
+        </div>
+        <span class="text-xs font-semibold" style="color:#03c75a"><span id="sel-count">0</span>/${maxVotes}</span>
+      </div>
+    </div>
+
+    <div id="idea-list" class="space-y-3 mb-5"></div>
+
+    <button id="btn-submit" onclick="submitVote()" disabled
+      class="w-full py-4 rounded-xl text-white font-bold text-base transition-all active:opacity-75"
+      style="background:#03c75a;opacity:.4;cursor:not-allowed">
+      투표 완료
+    </button>`;
+
+  const list = document.getElementById("idea-list");
+  list.innerHTML = ideas.map((idea, i) => `
+    <div class="idea-card bg-white rounded-xl border-2 border-border-light p-5 cursor-pointer flex items-center gap-4"
+      id="card-${i}" onclick="toggleSelect(${i})">
+      <div class="check-circle w-6 h-6 rounded-full border-2 border-border-light flex items-center justify-center shrink-0">
+        <span class="material-symbols-outlined text-white" style="font-size:14px;display:none" id="check-icon-${i}">check</span>
+      </div>
+      <span class="text-text-primary text-sm font-medium leading-snug">${idea}</span>
+    </div>`).join("");
+}
+
+function toggleSelect(i) {
+  const idx = selected.indexOf(i);
+  if (idx > -1) {
+    selected.splice(idx, 1);
+  } else {
+    if (selected.length >= maxVotes) {
+      showToast(`최대 ${maxVotes}개까지 선택할 수 있습니다`);
+      return;
+    }
+    selected.push(i);
+  }
+
+  ideas.forEach((_, j) => {
+    const card = document.getElementById(`card-${j}`);
+    const icon = document.getElementById(`check-icon-${j}`);
+    const circle = card.querySelector(".check-circle");
+    if (selected.includes(j)) {
+      card.classList.add("selected");
+      icon.style.display = "block";
+    } else {
+      card.classList.remove("selected");
+      icon.style.display = "none";
+    }
+  });
+
+  const count = selected.length;
+  document.getElementById("sel-count").textContent = count;
+  document.getElementById("progress-bar").style.width = `${(count / maxVotes) * 100}%`;
+
+  const btn = document.getElementById("btn-submit");
+  if (count > 0) {
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+  } else {
+    btn.disabled = true;
+    btn.style.opacity = ".4";
+    btn.style.cursor = "not-allowed";
+  }
+}
+
+async function submitVote() {
+  if (!selected.length) return;
+  const btn = document.getElementById("btn-submit");
+  btn.disabled = true;
+  btn.textContent = "제출 중...";
+  btn.style.opacity = ".6";
+
+  try {
+    const res = await fetch("/api/votes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: getUserId(), selectedIdeas: selected }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      showToast("오류: " + data.error);
+      btn.disabled = false;
+      btn.textContent = "투표 완료";
+      btn.style.opacity = "1";
+      return;
+    }
+    localStorage.setItem(STORAGE_FLAG, "true");
+    showSuccess();
+  } catch(e) {
+    showToast("네트워크 오류: " + e.message);
+    btn.disabled = false;
+    btn.textContent = "투표 완료";
+    btn.style.opacity = "1";
+  }
+}
+
+function showSuccess() {
+  document.getElementById("app").innerHTML = infoBox(
+    "🎉", "투표가 완료되었습니다!", "참여해주셔서 감사합니다. 3초 후 결과 화면으로 이동합니다.",
+    `<a href="/result.html" class="inline-block mt-4 text-sm font-semibold" style="color:#03c75a">지금 결과 보기 →</a>`
+  );
+  setTimeout(() => { location.href = "/result.html"; }, 3000);
+}
+
+function showAlreadyVoted() {
+  document.getElementById("app").innerHTML = infoBox(
+    "✅", "이미 투표하셨습니다.", "동일 기기에서 중복 투표는 불가합니다.",
+    `<a href="/result.html" class="inline-block mt-4 text-sm font-semibold" style="color:#03c75a">결과 보러 가기 →</a>`
+  );
+}
+
+function showToast(msg) {
+  const t = document.createElement("div");
+  t.textContent = msg;
+  t.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-5 py-3 rounded-full shadow-lg z-50";
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+init();
+</script>
+</body>
+</html>

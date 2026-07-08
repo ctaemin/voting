@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>투표 결과</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        primary: '#006e2e',
+        'primary-container': '#03c75a',
+        'background-alt': '#F4F6F8',
+        'border-light': '#EAEBEE',
+        'text-primary': '#000000',
+        'text-secondary': '#666666',
+        'text-tertiary': '#999999',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        headline: ['"Plus Jakarta Sans"', 'sans-serif'],
+      },
+    }
+  }
+}
+</script>
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .headline { font-family: 'Plus Jakarta Sans', sans-serif; }
+  .material-symbols-outlined { font-size: 22px; vertical-align: middle; }
+  .bar-fill { transition: width .6s ease; }
+  .card-rank-1 { border-color: #f59e0b; background: #fffbeb; }
+  .card-rank-2 { border-color: #94a3b8; background: #f8fafc; }
+</style>
+</head>
+<body class="bg-background-alt min-h-screen">
+
+  <!-- 헤더 -->
+  <header class="bg-white border-b border-border-light px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined" style="color:#03c75a">bar_chart</span>
+      <span class="headline font-bold text-lg text-text-primary">투표 결과</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span id="status-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-background-alt text-text-secondary">확인 중...</span>
+    </div>
+  </header>
+
+  <div class="max-w-xl mx-auto px-4 py-5 space-y-3">
+
+    <!-- 요약 -->
+    <div class="bg-white rounded-xl border border-border-light px-5 py-4 flex items-center justify-between">
+      <div>
+        <p class="text-text-secondary text-xs mb-0.5">총 참여자</p>
+        <p class="headline font-bold text-2xl text-text-primary" id="voter-count">-</p>
+      </div>
+      <div class="text-right">
+        <p class="text-text-secondary text-xs mb-0.5">마지막 갱신</p>
+        <p class="text-text-tertiary text-xs" id="refresh-time">-</p>
+        <p class="text-text-tertiary text-xs">5초마다 자동 갱신</p>
+      </div>
+    </div>
+
+    <!-- 최종 선정 배너 (투표 종료 후만 표시) -->
+    <div id="winner-banner" class="hidden"></div>
+
+    <!-- 결과 목록 -->
+    <div id="results">
+      <div class="bg-white rounded-xl border border-border-light px-5 py-10 text-center">
+        <p class="text-text-tertiary text-sm">결과를 불러오는 중...</p>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+async function loadResults() {
+  try {
+    const res = await fetch("/api/votes");
+    const data = await res.json();
+    if (data.error) return;
+
+    const { totals, totalVoters, ideas, isOpen } = data;
+
+    // 상태 배지
+    const badge = document.getElementById("status-badge");
+    if (isOpen) {
+      badge.textContent = "투표 진행중";
+      badge.style.cssText = "background:#dcfce7;color:#16a34a";
+    } else {
+      badge.textContent = "투표 종료";
+      badge.style.cssText = "background:#F4F6F8;color:#666666";
+    }
+
+    // 참여자 수
+    document.getElementById("voter-count").textContent = `${totalVoters}명`;
+
+    // 갱신 시각
+    const now = new Date();
+    document.getElementById("refresh-time").textContent =
+      `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+
+    if (!ideas.length) {
+      document.getElementById("results").innerHTML = `
+        <div class="bg-white rounded-xl border border-border-light px-5 py-10 text-center">
+          <p class="text-text-tertiary text-sm">아직 등록된 아이디어가 없습니다</p>
+        </div>`;
+      return;
+    }
+
+    // 정렬
+    const indexed = ideas.map((name, i) => ({ name, votes: totals[i] || 0 }));
+    indexed.sort((a, b) => b.votes - a.votes);
+    const max = indexed[0]?.votes || 1;
+
+    // 최종 선정 배너 (종료 후)
+    const banner = document.getElementById("winner-banner");
+    if (!isOpen && totalVoters > 0) {
+      const top2 = indexed.slice(0, 2);
+      banner.classList.remove("hidden");
+      banner.innerHTML = `
+        <div class="rounded-xl overflow-hidden border border-border-light">
+          <div class="px-5 py-3 text-white text-sm font-semibold" style="background:#006e2e">🏆 최종 선정 아이디어</div>
+          <div class="bg-white divide-y divide-border-light">
+            ${top2.map((item, i) => `
+              <div class="px-5 py-4 flex items-center gap-3">
+                <span class="text-2xl">${i === 0 ? "🥇" : "🥈"}</span>
+                <div>
+                  <p class="font-bold text-text-primary text-sm">${item.name}</p>
+                  <p class="text-text-secondary text-xs mt-0.5">${item.votes}표 획득</p>
+                </div>
+              </div>`).join("")}
+          </div>
+        </div>`;
+    } else {
+      banner.classList.add("hidden");
+    }
+
+    // 결과 카드
+    document.getElementById("results").innerHTML = indexed.map((item, rank) => {
+      const isFirst  = rank === 0;
+      const isSecond = rank === 1;
+      const medal    = isFirst ? "🥇" : isSecond ? "🥈" : rank === 2 ? "🥉" : `${rank+1}`;
+      const barColor = isFirst ? "#f59e0b" : isSecond ? "#94a3b8" : "#03c75a";
+      const pct      = max > 0 ? Math.round((item.votes / max) * 100) : 0;
+      const cardCls  = isFirst ? "card-rank-1" : isSecond ? "card-rank-2" : "";
+
+      return `
+        <div class="bg-white rounded-xl border-2 border-border-light px-5 py-4 ${cardCls}">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl leading-none">${medal}</span>
+              <span class="font-semibold text-text-primary text-sm leading-snug">${item.name}</span>
+            </div>
+            <span class="font-bold text-base shrink-0 ml-3" style="color:${barColor}">${item.votes}표</span>
+          </div>
+          <div class="h-2 bg-background-alt rounded-full overflow-hidden">
+            <div class="bar-fill h-full rounded-full" style="width:${pct}%;background:${barColor}"></div>
+          </div>
+          <p class="text-text-tertiary text-xs mt-1.5 text-right">${pct}%</p>
+        </div>`;
+    }).join("");
+
+  } catch(e) { console.error(e); }
+}
+
+loadResults();
+setInterval(loadResults, 5000);
+</script>
+</body>
+</html>
