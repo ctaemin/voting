@@ -34,8 +34,8 @@ tailwind.config = {
   .headline { font-family: 'Plus Jakarta Sans', sans-serif; }
   .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
   input:focus { outline: none; }
-  #end-modal { animation: fadeIn .2s ease; }
-  #end-modal-box { animation: slideUp .25s ease; }
+  .modal-overlay { animation: fadeIn .2s ease; }
+  .modal-box { animation: slideUp .25s ease; }
   @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
   @keyframes slideUp { from { transform:translateY(30px);opacity:0 } to { transform:translateY(0);opacity:1 } }
 </style>
@@ -196,10 +196,31 @@ tailwind.config = {
 </div><!-- /admin-screen -->
 
 <!-- ══════════════════════════════════════
+     투표 시작 팝업
+══════════════════════════════════════ -->
+<div id="start-modal" class="modal-overlay hidden fixed inset-0 z-50 flex items-center justify-center px-4" style="background:rgba(0,0,0,.5)">
+  <div class="modal-box bg-white rounded-2xl w-full max-w-sm overflow-hidden" style="box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <div class="px-6 pt-7 pb-5 text-center" style="background:linear-gradient(135deg,#006e2e,#03c75a)">
+      <div class="text-5xl mb-3">🗳️</div>
+      <p class="headline font-bold text-white text-xl">투표가 시작되었습니다!</p>
+    </div>
+    <div class="px-6 py-6 text-center">
+      <p class="text-text-primary font-semibold text-sm mb-1">좌측 QR코드로 접속해서 투표하세요</p>
+      <p class="text-text-tertiary text-xs">참석자들이 QR코드를 스캔하면 투표 화면으로 이동합니다</p>
+    </div>
+    <div class="px-6 pb-6">
+      <button onclick="closeStartModal()"
+        class="w-full py-3 rounded-xl text-white font-bold text-sm active:opacity-75"
+        style="background:#03c75a">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
      투표 종료 팝업
 ══════════════════════════════════════ -->
 <div id="end-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4" style="background:rgba(0,0,0,.5)">
-  <div id="end-modal-box" class="bg-white rounded-2xl w-full max-w-sm overflow-hidden" style="box-shadow:0 20px 60px rgba(0,0,0,.2)">
+  <div id="end-modal-box" class="modal-box bg-white rounded-2xl w-full max-w-sm overflow-hidden" style="box-shadow:0 20px 60px rgba(0,0,0,.2)">
     <!-- 헤더 -->
     <div class="px-6 pt-7 pb-5 text-center" style="background:linear-gradient(135deg,#006e2e,#03c75a)">
       <div class="text-5xl mb-3">🏁</div>
@@ -371,7 +392,8 @@ async function setOpen(isOpen) {
     if (data.error) return alert("❌ " + data.error);
     currentIsOpen = isOpen;
     updateStatusBadge();
-    if (!isOpen) showEndModal();
+    if (isOpen) showStartModal();
+    else showEndModal();
   } catch(e) { alert("네트워크 오류: " + e.message); }
 }
 
@@ -410,6 +432,14 @@ async function showEndModal() {
 
 function closeEndModal() {
   document.getElementById("end-modal").classList.add("hidden");
+}
+
+function showStartModal() {
+  document.getElementById("start-modal").classList.remove("hidden");
+}
+
+function closeStartModal() {
+  document.getElementById("start-modal").classList.add("hidden");
 }
 
 function updateStatusBadge() {
