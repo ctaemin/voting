@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>투표 관리자</title>
+<title>한솔제지 장항공장 투표 관리 프로그램</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,300,0,0" rel="stylesheet">
@@ -48,9 +48,19 @@ tailwind.config = {
 <div id="login-screen" class="min-h-screen flex items-center justify-center px-4">
   <div class="bg-white w-full max-w-sm rounded-xl border border-border-light p-8" style="box-shadow:0 4px 12px rgba(0,0,0,.05)">
     <div class="text-center mb-8">
-      <div class="text-4xl mb-2">🗳️</div>
-      <h1 class="headline text-2xl font-bold text-text-primary">투표 관리자</h1>
-      <p class="text-text-secondary text-sm mt-1">관리자 계정으로 로그인하세요</p>
+      <div class="flex justify-center mb-4">
+        <svg viewBox="0 0 160 52" width="160" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0" y="0" width="18" height="18" fill="#1a4fa0"/>
+          <rect x="20" y="0" width="18" height="18" fill="#d0d8e8"/>
+          <rect x="0" y="20" width="18" height="18" fill="#d0d8e8"/>
+          <rect x="20" y="20" width="18" height="18" fill="#4caf50"/>
+          <text x="46" y="22" font-family="Arial Black, Arial" font-weight="900" font-size="22" fill="#1a1a2e">Hansol</text>
+          <text x="46" y="42" font-family="Arial, sans-serif" font-size="13" fill="#555">한솔제지</text>
+        </svg>
+      </div>
+      <h1 class="headline text-lg font-bold text-text-primary">한솔제지 장항공장</h1>
+      <p class="headline text-base font-semibold text-text-secondary">투표 관리 프로그램</p>
+      <p class="text-text-tertiary text-sm mt-2">관리자 계정으로 로그인하세요</p>
     </div>
     <div class="space-y-4">
       <div>
@@ -82,9 +92,19 @@ tailwind.config = {
 
   <!-- 헤더 -->
   <header class="bg-white border-b border-border-light px-6 py-3 flex items-center justify-between shrink-0">
-    <div class="flex items-center gap-2">
-      <span class="material-symbols-outlined" style="color:#03c75a">how_to_vote</span>
-      <span class="headline font-bold text-lg text-text-primary">투표 관리자</span>
+    <div class="flex items-center gap-3">
+      <svg viewBox="0 0 130 42" width="100" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="14" height="14" fill="#1a4fa0"/>
+        <rect x="16" y="0" width="14" height="14" fill="#d0d8e8"/>
+        <rect x="0" y="16" width="14" height="14" fill="#d0d8e8"/>
+        <rect x="16" y="16" width="14" height="14" fill="#4caf50"/>
+        <text x="36" y="17" font-family="Arial Black, Arial" font-weight="900" font-size="17" fill="#1a1a2e">Hansol</text>
+        <text x="36" y="33" font-family="Arial, sans-serif" font-size="11" fill="#555">한솔제지</text>
+      </svg>
+      <div class="border-l border-border-light pl-3">
+        <p class="headline font-bold text-sm text-text-primary leading-tight">한솔제지 장항공장</p>
+        <p class="text-text-tertiary text-xs">투표 관리 프로그램</p>
+      </div>
     </div>
     <div class="flex items-center gap-3">
       <span id="status-badge" class="text-xs font-semibold px-3 py-1 rounded-full bg-background-alt text-text-secondary">확인 중...</span>
