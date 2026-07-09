@@ -101,9 +101,9 @@ export default async function handler(req, res) {
           stmt: {
             sql: "INSERT OR REPLACE INTO votes (user_id, selected_ideas, created_at) VALUES (?,?,?)",
             args: [
-              { type: "text",    value: userId },
-              { type: "text",    value: JSON.stringify(selectedIdeas) },
-             { type: "text", value: String(Date.now()) },
+              { type: "text", value: userId },
+              { type: "text", value: JSON.stringify(selectedIdeas) },
+              { type: "text", value: String(Date.now()) },
             ],
           },
         },

@@ -118,6 +118,15 @@ tailwind.config = {
       <!-- 아이디어 목록 -->
       <ul id="idea-list" class="divide-y divide-border-light"></ul>
 
+      <!-- 아이디어 전체 삭제 -->
+      <div class="px-5 py-3 border-t border-border-light">
+        <button onclick="clearAllIdeas()"
+          class="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border text-sm font-semibold text-red-500 border-red-200 bg-red-50 active:opacity-75">
+          <span class="material-symbols-outlined" style="font-size:16px;color:inherit">delete_sweep</span>
+          아이디어 전체 삭제
+        </button>
+      </div>
+
       <!-- 선택 수 + 저장 -->
       <div class="px-5 py-4 bg-background-alt flex items-center justify-between gap-4">
         <div class="flex items-center gap-3">
@@ -391,6 +400,33 @@ async function loadResults() {
         </div>`;
     }).join("");
   } catch(e) { console.error(e); }
+}
+
+async function clearAllIdeas() {
+  if (!confirm("아이디어를 전체 삭제하시겠습니까?\n투표 데이터도 함께 초기화됩니다.")) return;
+  try {
+    // 투표 데이터 초기화
+    await fetch("/api/votes", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: API_SECRET }),
+    });
+    // 아이디어 목록 비우고 저장
+    ideas = [];
+    const maxVotes = parseInt(document.getElementById("max-votes").value);
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: API_SECRET, ideas: [], maxVotes, isOpen: false }),
+    });
+    const data = await res.json();
+    if (data.error) return alert("❌ " + data.error);
+    currentIsOpen = false;
+    updateStatusBadge();
+    renderIdeas();
+    loadResults();
+    alert("✅ 아이디어 및 투표 데이터가 모두 삭제되었습니다.");
+  } catch(e) { alert("네트워크 오류: " + e.message); }
 }
 
 async function resetVotes() {
