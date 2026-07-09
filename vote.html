@@ -51,8 +51,7 @@ tailwind.config = {
   </div>
 
 <script>
-const STORAGE_FLAG = "voted_flag";
-const STORAGE_UID  = "vote_user_id";
+const STORAGE_UID = "vote_user_id";
 
 function getUserId() {
   let id = localStorage.getItem(STORAGE_UID);
@@ -63,17 +62,15 @@ function getUserId() {
   return id;
 }
 
+function getVotedKey(sid) { return "voted_session_" + sid; }
+
 let maxVotes = 2;
 let selected = [];
 let ideas = [];
+let sessionId = "1";
 
 async function init() {
   const app = document.getElementById("app");
-
-  if (localStorage.getItem(STORAGE_FLAG) === "true") {
-    showAlreadyVoted();
-    return;
-  }
 
   let data;
   try {
@@ -81,6 +78,14 @@ async function init() {
     data = await res.json();
   } catch(e) {
     app.innerHTML = infoBox("⚠️", "서버 연결에 실패했습니다.", "잠시 후 다시 시도해주세요.");
+    return;
+  }
+
+  sessionId = data.sessionId ?? "1";
+
+  // 현재 세션에서 이미 투표했는지 확인
+  if (localStorage.getItem(getVotedKey(sessionId)) === "true") {
+    showAlreadyVoted();
     return;
   }
 
@@ -198,7 +203,7 @@ async function submitVote() {
       btn.style.opacity = "1";
       return;
     }
-    localStorage.setItem(STORAGE_FLAG, "true");
+    localStorage.setItem(getVotedKey(sessionId), "true");
     showSuccess();
   } catch(e) {
     showToast("네트워크 오류: " + e.message);

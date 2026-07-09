@@ -1,8 +1,8 @@
-// GET  /api/config  → { ideas, maxVotes, isOpen }
-// POST /api/config  → { secret, ideas, maxVotes, isOpen } → 저장
+// GET  /api/config  → { ideas, maxVotes, isOpen, sessionId }
+// POST /api/config  → { secret, ideas, maxVotes, isOpen, newSession? } → 저장
 
-const TURSO_URL   = process.env.TURSO_URL;
-const TURSO_TOKEN = process.env.TURSO_TOKEN;
+const TURSO_URL    = process.env.TURSO_URL;
+const TURSO_TOKEN  = process.env.TURSO_TOKEN;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "1234";
 
 async function sql(statements) {
@@ -32,7 +32,7 @@ async function init() {
     {
       type: "execute",
       stmt: {
-        sql: `INSERT OR IGNORE INTO config VALUES ('ideas','[]'),('maxVotes','2'),('isOpen','false')`,
+        sql: `INSERT OR IGNORE INTO config VALUES ('ideas','[]'),('maxVotes','2'),('isOpen','false'),('sessionId','1')`,
       },
     },
   ]);
@@ -45,9 +45,10 @@ async function getConfig() {
   const rows = result.results[0].response.result.rows;
   const map = Object.fromEntries(rows.map((r) => [r[0].value, r[1].value]));
   return {
-    ideas:    JSON.parse(map.ideas    ?? "[]"),
-    maxVotes: parseInt(map.maxVotes   ?? "2"),
-    isOpen:   map.isOpen === "true",
+    ideas:     JSON.parse(map.ideas ?? "[]"),
+    maxVotes:  parseInt(map.maxVotes ?? "2"),
+    isOpen:    map.isOpen === "true",
+    sessionId: map.sessionId ?? "1",
   };
 }
 
@@ -65,14 +66,22 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { secret, ideas, maxVotes, isOpen } = req.body;
+      const { secret, ideas, maxVotes, isOpen, newSession } = req.body;
       if (secret !== ADMIN_SECRET) return res.status(403).json({ error: "인증 실패" });
 
-      await sql([
+      const updates = [
         { type: "execute", stmt: { sql: "UPDATE config SET value=? WHERE key='ideas'",    args: [{ type: "text", value: JSON.stringify(ideas) }] } },
         { type: "execute", stmt: { sql: "UPDATE config SET value=? WHERE key='maxVotes'", args: [{ type: "text", value: String(maxVotes) }] } },
         { type: "execute", stmt: { sql: "UPDATE config SET value=? WHERE key='isOpen'",   args: [{ type: "text", value: String(isOpen) }] } },
-      ]);
+      ];
+
+      // newSession 플래그가 있으면 세션 번호 갱신 → 모든 참석자 재투표 가능
+      if (newSession) {
+        const newId = String(Date.now());
+        updates.push({ type: "execute", stmt: { sql: "UPDATE config SET value=? WHERE key='sessionId'", args: [{ type: "text", value: newId }] } });
+      }
+
+      await sql(updates);
       return res.status(200).json({ ok: true });
     }
 

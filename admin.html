@@ -337,7 +337,7 @@ async function setOpen(isOpen) {
     const res = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret: API_SECRET, ideas, maxVotes, isOpen }),
+      body: JSON.stringify({ secret: API_SECRET, ideas, maxVotes, isOpen, newSession: isOpen }),
     });
     const data = await res.json();
     if (data.error) return alert("❌ " + data.error);
@@ -417,7 +417,7 @@ async function clearAllIdeas() {
     const res = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret: API_SECRET, ideas: [], maxVotes, isOpen: false }),
+      body: JSON.stringify({ secret: API_SECRET, ideas: [], maxVotes, isOpen: false, newSession: true }),
     });
     const data = await res.json();
     if (data.error) return alert("❌ " + data.error);
@@ -439,7 +439,14 @@ async function resetVotes() {
     });
     const data = await res.json();
     if (data.error) return alert("❌ " + data.error);
-    alert("✅ 초기화 완료!");
+    // 세션 번호 갱신 → 모든 참석자 재투표 가능
+    const maxVotes = parseInt(document.getElementById("max-votes").value);
+    await fetch("/api/config", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: API_SECRET, ideas, maxVotes, isOpen: currentIsOpen, newSession: true }),
+    });
+    alert("✅ 초기화 완료! 참석자들이 다시 투표할 수 있습니다.");
     loadResults();
   } catch(e) { alert("네트워크 오류: " + e.message); }
 }
