@@ -178,7 +178,7 @@ tailwind.config = {
       </div>
 
       <!-- 아이디어 목록 -->
-      <ul id="idea-list" class="divide-y divide-border-light max-h-[60vh] overflow-y-auto"></ul>
+      <ul id="idea-list" class="divide-y divide-border-light"></ul>
     </section>
 
     <!-- ── 오른쪽: 실시간 결과 ── -->
@@ -301,22 +301,30 @@ function confirmEdit(i) {
   renderIdeas();
 }
 
+function getIdeaStyle(count) {
+  if (count <= 6)  return { py: "py-3",    fs: "14px", icon: "17px" };
+  if (count <= 10) return { py: "py-2",    fs: "13px", icon: "15px" };
+  if (count <= 15) return { py: "py-1.5",  fs: "12px", icon: "14px" };
+  return               { py: "py-1",    fs: "11px", icon: "13px" };
+}
+
 function renderIdeas() {
   const ul = document.getElementById("idea-list");
   if (!ideas.length) {
     ul.innerHTML = `<li class="px-5 py-8 text-center text-text-tertiary text-sm">아이디어를 추가해주세요</li>`;
     return;
   }
+  const s = getIdeaStyle(ideas.length);
   ul.innerHTML = ideas.map((idea, i) => `
     <li id="idea-item-${i}">
-      <div class="flex items-center gap-3 px-4 py-3">
-        <span class="text-text-tertiary text-sm w-5 shrink-0 font-medium">${i+1}</span>
-        <span class="flex-1 text-sm text-text-primary">${idea}</span>
-        <button onclick="startEdit(${i})" class="p-1.5 rounded-lg text-text-secondary hover:bg-background-alt active:opacity-75">
-          <span class="material-symbols-outlined" style="font-size:17px">edit</span>
+      <div class="flex items-center gap-2 px-4 ${s.py}">
+        <span class="text-text-tertiary w-5 shrink-0 font-medium" style="font-size:${s.fs}">${i+1}</span>
+        <span class="flex-1 text-text-primary" style="font-size:${s.fs}">${idea}</span>
+        <button onclick="startEdit(${i})" class="p-1 rounded-lg text-text-secondary hover:bg-background-alt active:opacity-75">
+          <span class="material-symbols-outlined" style="font-size:${s.icon}">edit</span>
         </button>
-        <button onclick="removeIdea(${i})" class="p-1.5 rounded-lg text-red-400 hover:bg-red-50 active:opacity-75">
-          <span class="material-symbols-outlined" style="font-size:17px">delete</span>
+        <button onclick="removeIdea(${i})" class="p-1 rounded-lg text-red-400 hover:bg-red-50 active:opacity-75">
+          <span class="material-symbols-outlined" style="font-size:${s.icon}">delete</span>
         </button>
       </div>
     </li>`).join("");
