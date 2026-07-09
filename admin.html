@@ -34,6 +34,10 @@ tailwind.config = {
   .headline { font-family: 'Plus Jakarta Sans', sans-serif; }
   .material-symbols-outlined { font-size: 20px; vertical-align: middle; }
   input:focus { outline: none; }
+  #end-modal { animation: fadeIn .2s ease; }
+  #end-modal-box { animation: slideUp .25s ease; }
+  @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+  @keyframes slideUp { from { transform:translateY(30px);opacity:0 } to { transform:translateY(0);opacity:1 } }
 </style>
 </head>
 <body class="bg-background-alt min-h-screen">
@@ -191,6 +195,30 @@ tailwind.config = {
   </div><!-- /grid -->
 </div><!-- /admin-screen -->
 
+<!-- ══════════════════════════════════════
+     투표 종료 팝업
+══════════════════════════════════════ -->
+<div id="end-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-4" style="background:rgba(0,0,0,.5)">
+  <div id="end-modal-box" class="bg-white rounded-2xl w-full max-w-sm overflow-hidden" style="box-shadow:0 20px 60px rgba(0,0,0,.2)">
+    <!-- 헤더 -->
+    <div class="px-6 pt-7 pb-5 text-center" style="background:linear-gradient(135deg,#006e2e,#03c75a)">
+      <div class="text-5xl mb-3">🏁</div>
+      <p class="headline font-bold text-white text-xl">투표가 종료되었습니다</p>
+      <p class="text-green-100 text-sm mt-1" id="modal-voter-count"></p>
+    </div>
+    <!-- 순위 -->
+    <div class="px-6 py-5 space-y-3" id="modal-ranks">
+      <p class="text-center text-text-tertiary text-sm">결과를 불러오는 중...</p>
+    </div>
+    <!-- 닫기 -->
+    <div class="px-6 pb-6">
+      <button onclick="closeEndModal()"
+        class="w-full py-3 rounded-xl text-white font-bold text-sm active:opacity-75"
+        style="background:#03c75a">확인</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const ADMIN_ID = "admin";
 const ADMIN_PW = "1234";
@@ -335,7 +363,45 @@ async function setOpen(isOpen) {
     if (data.error) return alert("❌ " + data.error);
     currentIsOpen = isOpen;
     updateStatusBadge();
+    if (!isOpen) showEndModal();
   } catch(e) { alert("네트워크 오류: " + e.message); }
+}
+
+async function showEndModal() {
+  document.getElementById("end-modal").classList.remove("hidden");
+  try {
+    const res = await fetch("/api/votes");
+    const data = await res.json();
+    if (data.error) return;
+    const { totals, totalVoters, ideas: ideaList } = data;
+    document.getElementById("modal-voter-count").textContent = `총 ${totalVoters}명 참여`;
+    if (!ideaList.length) {
+      document.getElementById("modal-ranks").innerHTML = `<p class="text-center text-text-tertiary text-sm py-2">등록된 아이디어가 없습니다</p>`;
+      return;
+    }
+    const sorted = ideaList
+      .map((name, i) => ({ name, votes: totals[i] || 0 }))
+      .sort((a, b) => b.votes - a.votes);
+    const top = sorted.slice(0, 2);
+    const medals = ["🥇", "🥈"];
+    const colors = ["#f59e0b", "#94a3b8"];
+    const bg     = ["#fffbeb", "#f8fafc"];
+    const border = ["#f59e0b", "#94a3b8"];
+    document.getElementById("modal-ranks").innerHTML = top.map((item, i) => `
+      <div class="flex items-center gap-4 rounded-xl px-4 py-3.5 border-2"
+        style="background:${bg[i]};border-color:${border[i]}">
+        <span class="text-3xl leading-none">${medals[i]}</span>
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-text-primary text-sm truncate">${item.name}</p>
+          <p class="text-xs mt-0.5" style="color:${colors[i]}">${i === 0 ? "1순위" : "2순위"}</p>
+        </div>
+        <span class="font-bold text-lg shrink-0" style="color:${colors[i]}">${item.votes}표</span>
+      </div>`).join("");
+  } catch(e) { console.error(e); }
+}
+
+function closeEndModal() {
+  document.getElementById("end-modal").classList.add("hidden");
 }
 
 function updateStatusBadge() {
